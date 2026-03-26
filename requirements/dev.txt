@@ -1,0 +1,5 @@
+-r base.txt
+
+# Optional local test tooling.
+pytest>=8.0
+

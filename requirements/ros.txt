@@ -1,0 +1,4 @@
+# ROS 2 Python dependencies are provided by the ROS installation, not pip.
+# Install them through your ROS 2 distro and workspace tooling.
+rclpy
+std_msgs

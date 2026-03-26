@@ -1,0 +1,3 @@
+# Local Python packaging support for this repo.
+setuptools>=65
+
