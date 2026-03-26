@@ -25,13 +25,34 @@ python -m unittest discover -s test
 
 ## ROS 2 usage
 
-Place this folder in a ROS 2 workspace `src/` directory and build with:
+Place the MAB_algo package into the ROS 2 workspace `src/` directory and build with:
 
 ```bash
 colcon build --packages-select mab_ucb_bandit
 source install/setup.bash
 ros2 run mab_ucb_bandit ucb_bandit_node
 ```
+
+YOu have two options for implementation, right now all of the topics in this package are set to be run as ros parameters so you can set them in the launch file like this:
+
+parameters=[{
+    "start_topic": "/gui/start",
+    "stop_topic": "/gui/stop",
+    "reset_topic": "/gui/reset",
+    "request_topic": "/gui/next_arm",
+    "reward_topic": "/experiment/reward",
+    "bucket_topic": "/robot/target_bucket",
+    "action_policy": "ucb",
+}]
+
+OR you can replace the paramaters with your esiting topics form the work flow e.g.
+
+self.request_subscriber = self.create_subscription(
+    Empty,
+    request_topic,
+    self._handle_selection_request,
+    10,
+)
 
 Default topic flow:
 
@@ -42,7 +63,7 @@ Default topic flow:
 - This node publishes `std_msgs/Int32` on `ucb_selected_bucket` with the chosen bucket index `0..3`.
 - After the robot finishes the trial, publish `std_msgs/Int32` on `bandit_reward` with `0` or `1` to update the UCB estimate for the last chosen bucket.
 - Thompson sampling with forgetfulness and a softmax policy update on the same observed trials, but they do not affect the published bucket choice.
-- Use the `action_policy` parameter to switch the published choice between `ucb` and `greedy` conditions.
+- Use the `action_policy` parameter to switch the published choice between `ucb` and `greedy` conditions.  Set this to greedy for now we can change this later if we need.
 
 Optional ROS parameters:
 
