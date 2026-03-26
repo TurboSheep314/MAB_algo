@@ -35,7 +35,7 @@ ros2 run mab_ucb_bandit ucb_bandit_node
 
 YOu have two options for implementation, right now all of the topics in this package are set to be run as ros parameters so you can set them in the launch file like this:
 
-```python
+```bash
 parameters=[{
     "start_topic": "/gui/start",
     "stop_topic": "/gui/stop",
@@ -44,13 +44,13 @@ parameters=[{
     "reward_topic": "/experiment/reward",
     "bucket_topic": "/robot/target_bucket",
     "action_policy": "ucb",
-}]
+}
 ```
 
 
 OR you can replace the paramaters with your esiting topics form the work flow e.g.
 
-```python
+```bash
     self.request_subscriber = self.create_subscription(
     Empty,
     request_topic,
