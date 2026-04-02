@@ -86,14 +86,23 @@ class UCB1Solver:
 
 
 class UCBDecisionEngine:
-    def __init__(self, n_arms: int = 4) -> None:
+    def __init__(
+        self,
+        n_arms: int = 4,
+        warm_start_each_arm: bool = False,
+        warm_start_value: float = 0.5,
+    ) -> None:
+        if not 0.0 <= warm_start_value <= 1.0:
+            raise ValueError("warm_start_value must be between 0.0 and 1.0.")
         self._solver = UCB1Solver(n_arms=n_arms)
         self.n_arms = n_arms
-        self.counts = [0] * n_arms
-        self.values = [0.0] * n_arms
+        self.warm_start_each_arm = warm_start_each_arm
+        self.warm_start_value = warm_start_value
+        self.counts = [1] * n_arms if warm_start_each_arm else [0] * n_arms
+        self.values = [warm_start_value] * n_arms if warm_start_each_arm else [0.0] * n_arms
         self.rewards_by_arm = [0] * n_arms
         self.total_reward = 0
-        self.total_pulls = 0
+        self.total_pulls = n_arms if warm_start_each_arm else 0
         self.last_selected_arm: int | None = None
         self.awaiting_reward = False
         self.selection_history: List[int] = []
@@ -227,17 +236,24 @@ class PolicyComparisonEngine:
         softmax_temperature: float = 0.2,
         softmax_learning_rate: float = 0.1,
         action_policy: str = "ucb",
+        warm_start_each_arm: bool = False,
+        warm_start_value: float = 0.5,
     ) -> None:
-        self.ucb = UCBDecisionEngine(n_arms=n_arms)
+        self.ucb = UCBDecisionEngine(
+            n_arms=n_arms,
+            warm_start_each_arm=warm_start_each_arm,
+            warm_start_value=warm_start_value,
+        )
         self.action_policy = action_policy.lower()
         if self.action_policy not in {"ucb", "greedy"}:
             raise ValueError("action_policy must be either 'ucb' or 'greedy'.")
-        self.arm_probabilities: list[float] | None = None
         self.n_arms = n_arms
         self.thompson_forgetfulness = thompson_forgetfulness
         self.thompson_seed = thompson_seed
         self.softmax_temperature = softmax_temperature
         self.softmax_learning_rate = softmax_learning_rate
+        self.warm_start_each_arm = warm_start_each_arm
+        self.warm_start_value = warm_start_value
         self.experiment_active = False
         self.thompson = ThompsonSamplingTracker(
             n_arms=n_arms,
@@ -257,7 +273,11 @@ class PolicyComparisonEngine:
         self.experiment_active = False
 
     def reset_experiment(self) -> None:
-        self.ucb = UCBDecisionEngine(n_arms=self.n_arms)
+        self.ucb = UCBDecisionEngine(
+            n_arms=self.n_arms,
+            warm_start_each_arm=self.warm_start_each_arm,
+            warm_start_value=self.warm_start_value,
+        )
         self.thompson = ThompsonSamplingTracker(
             n_arms=self.n_arms,
             forgetfulness=self.thompson_forgetfulness,

@@ -80,6 +80,8 @@ Optional ROS parameters:
 - `stop_topic`: topic name for the experiment stop trigger
 - `reset_topic`: topic name for the experiment reset trigger
 - `action_policy`: published action mode, either `ucb` or `greedy`
+- `warm_start_each_arm`: if `true`, initialize UCB as if every arm has already been seen once
+- `warm_start_value`: starting estimated reward used for each arm during warm start
 - `thompson_forgetfulness`: decay factor for Thompson sampling memory
 - `thompson_seed`: RNG seed for repeatable Thompson samples in logs
 - `softmax_temperature`: exploration temperature for the comparison softmax policy

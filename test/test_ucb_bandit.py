@@ -235,6 +235,31 @@ class TestUCBBandit(unittest.TestCase):
         self.assertEqual(engine.thompson.alpha, [1.0, 1.0, 1.0, 1.0])
         self.assertEqual(engine.softmax.preferences, [0.0, 0.0, 0.0, 0.0])
 
+    def test_warm_start_skips_forced_first_visit(self) -> None:
+        engine = UCBDecisionEngine(n_arms=4, warm_start_each_arm=True, warm_start_value=0.5)
+
+        self.assertEqual(engine.counts, [1, 1, 1, 1])
+        self.assertEqual(engine.values, [0.5, 0.5, 0.5, 0.5])
+        self.assertEqual(engine.total_pulls, 4)
+
+        first_choice = engine.choose_next_arm()
+
+        self.assertIn(first_choice, [0, 1, 2, 3])
+        self.assertNotEqual(engine.selection_history, [0, 1, 2, 3])
+
+    def test_policy_engine_reset_preserves_warm_start(self) -> None:
+        engine = PolicyComparisonEngine(
+            n_arms=4,
+            warm_start_each_arm=True,
+            warm_start_value=0.4,
+        )
+
+        engine.reset_experiment()
+
+        self.assertEqual(engine.ucb.counts, [1, 1, 1, 1])
+        self.assertEqual(engine.ucb.values, [0.4, 0.4, 0.4, 0.4])
+        self.assertEqual(engine.ucb.total_pulls, 4)
+
 
 if __name__ == "__main__":
     unittest.main()

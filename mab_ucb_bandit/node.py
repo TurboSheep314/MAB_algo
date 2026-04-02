@@ -18,17 +18,12 @@ class UCBBanditNode(Node):
         self.declare_parameter("stop_topic", "stop_experiment")
         self.declare_parameter("reset_topic", "reset_experiment")
         self.declare_parameter("action_policy", "ucb")
+        self.declare_parameter("warm_start_each_arm", False)
+        self.declare_parameter("warm_start_value", 0.5)
         self.declare_parameter("thompson_forgetfulness", 0.05)
         self.declare_parameter("thompson_seed", 11)
         self.declare_parameter("softmax_temperature", 0.2)
         self.declare_parameter("softmax_learning_rate", 0.1)
-        self.declare_parameter("arm_probabilities", [0.9, 0.7, 0.5, 0.3])
-
-        # this is later for use in a launch file
-        #probabilities = [float(value) for value in self.get_parameter("arm_probabilities").value]
-        #if len(probabilities) != 4:
-        #    raise ValueError("arm_probabilities must contain exactly 4 values.")
-        #
 
         request_topic = str(self.get_parameter("request_topic").value)
         reward_topic = str(self.get_parameter("reward_topic").value)
@@ -37,6 +32,8 @@ class UCBBanditNode(Node):
         stop_topic = str(self.get_parameter("stop_topic").value)
         reset_topic = str(self.get_parameter("reset_topic").value)
         action_policy = str(self.get_parameter("action_policy").value)
+        warm_start_each_arm = bool(self.get_parameter("warm_start_each_arm").value)
+        warm_start_value = float(self.get_parameter("warm_start_value").value)
         thompson_forgetfulness = float(self.get_parameter("thompson_forgetfulness").value)
         thompson_seed = int(self.get_parameter("thompson_seed").value)
         softmax_temperature = float(self.get_parameter("softmax_temperature").value)
@@ -50,6 +47,8 @@ class UCBBanditNode(Node):
             softmax_temperature=softmax_temperature,
             softmax_learning_rate=softmax_learning_rate,
             action_policy=action_policy,
+            warm_start_each_arm=warm_start_each_arm,
+            warm_start_value=warm_start_value,
         )
         self.bucket_publisher = self.create_publisher(Int32, bucket_topic, 10)
         self.request_subscriber = self.create_subscription(
@@ -86,7 +85,8 @@ class UCBBanditNode(Node):
         self.get_logger().info(
             f"Listening for start on '{start_topic}', stop on '{stop_topic}', reset on '{reset_topic}', "
             f"move requests on '{request_topic}', rewards on '{reward_topic}', "
-            f"publishing bucket choices on '{bucket_topic}', and using '{action_policy}' as the action policy."
+            f"publishing bucket choices on '{bucket_topic}', using '{action_policy}' as the action policy, "
+            f"and warm_start_each_arm={warm_start_each_arm}."
         )
 
     def _handle_start_experiment(self, _: Empty) -> None:
