@@ -22,6 +22,13 @@ class UCBBanditNode(Node):
         self.declare_parameter("thompson_seed", 11)
         self.declare_parameter("softmax_temperature", 0.2)
         self.declare_parameter("softmax_learning_rate", 0.1)
+        self.declare_parameter("arm_probabilities", [0.9, 0.7, 0.5, 0.3])
+
+        # this is later for use in a launch file
+        #probabilities = [float(value) for value in self.get_parameter("arm_probabilities").value]
+        #if len(probabilities) != 4:
+        #    raise ValueError("arm_probabilities must contain exactly 4 values.")
+        #
 
         request_topic = str(self.get_parameter("request_topic").value)
         reward_topic = str(self.get_parameter("reward_topic").value)

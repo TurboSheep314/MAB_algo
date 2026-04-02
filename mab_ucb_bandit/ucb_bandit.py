@@ -232,6 +232,7 @@ class PolicyComparisonEngine:
         self.action_policy = action_policy.lower()
         if self.action_policy not in {"ucb", "greedy"}:
             raise ValueError("action_policy must be either 'ucb' or 'greedy'.")
+        self.arm_probabilities: list[float] | None = None
         self.n_arms = n_arms
         self.thompson_forgetfulness = thompson_forgetfulness
         self.thompson_seed = thompson_seed
