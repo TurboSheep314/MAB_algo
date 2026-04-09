@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import random
+import numpy as np
 from dataclasses import dataclass, field
 from typing import List, Sequence
 
@@ -39,20 +40,26 @@ class UCB1Solver:
         if n_arms <= 0:
             raise ValueError("Number of arms must be positive.")
         self.n_arms = n_arms
+        self.test_log_var = "a"
+
+    def argmax_random(values, rng, tol=1e-12):
+        max_val = max(values)
+        candidates = [i for i, v in enumerate(values) if abs(v - max_val) <= tol]
+        return rng.choice(candidates)
 
     def select_arm(self, counts: Sequence[int], values: Sequence[float], total_pulls: int) -> int:
         # UCB1 forces an initial visit to every arm before using the confidence bound formula.
         for arm_index, count in enumerate(counts):
             if count == 0:
                 return arm_index
-
+            
         confidence_bounds = []
         for arm_index in range(self.n_arms):
             # Higher uncertainty yields a larger bonus, so rarely sampled arms stay attractive.
             bonus = math.sqrt((2.0 * math.log(total_pulls)) / counts[arm_index])
             confidence_bounds.append(values[arm_index] + bonus)
 
-        return max(range(self.n_arms), key=confidence_bounds.__getitem__)
+        return self.argmax_random(confidence_bounds, np.random)
 
     def run(self, bandit: FourArmedBandit, rounds: int) -> BanditResult:
         if rounds <= 0:
@@ -89,7 +96,7 @@ class UCBDecisionEngine:
     def __init__(
         self,
         n_arms: int = 4,
-        warm_start_each_arm: bool = False,
+        warm_start_each_arm: bool = True,
         warm_start_value: float = 0.5,
     ) -> None:
         if not 0.0 <= warm_start_value <= 1.0:
@@ -99,7 +106,7 @@ class UCBDecisionEngine:
         self.warm_start_each_arm = warm_start_each_arm
         self.warm_start_value = warm_start_value
         self.counts = [1] * n_arms if warm_start_each_arm else [0] * n_arms
-        self.values = [warm_start_value] * n_arms if warm_start_each_arm else [0.0] * n_arms
+        self.values = [warm_start_value + random.uniform (-0.2, 0.2) for _ in range(n_arms)] if warm_start_each_arm else [0.0] * n_arms
         self.rewards_by_arm = [0] * n_arms
         self.total_reward = 0
         self.total_pulls = n_arms if warm_start_each_arm else 0
@@ -123,12 +130,17 @@ class UCBDecisionEngine:
             values=self.values,
             total_pulls=max(1, self.total_pulls),
         )
+    
+    def argmax_random(values, rng, tol=1e-12):
+        max_val = max(values)
+        candidates = [i for i, v in enumerate(values) if abs(v - max_val) <= tol]
+        return rng.choice(candidates)
 
     def greedy_arm(self) -> int:
         for arm_index, count in enumerate(self.counts):
             if count == 0:
                 return arm_index
-        return max(range(self.n_arms), key=self.values.__getitem__)
+        return self.argmax_random(self.values, np.random)
 
     def record_reward(self, reward: int, arm_index: int | None = None) -> int:
         # In the ROS flow, reward feedback normally applies to the most recently selected arm.

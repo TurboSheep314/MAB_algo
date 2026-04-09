@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import rclpy
+import random
 from rclpy.node import Node
 from std_msgs.msg import Empty, Int32
 
@@ -18,7 +19,7 @@ class UCBBanditNode(Node):
         self.declare_parameter("stop_topic", "stop_experiment")
         self.declare_parameter("reset_topic", "reset_experiment")
         self.declare_parameter("action_policy", "ucb")
-        self.declare_parameter("warm_start_each_arm", False)
+        self.declare_parameter("warm_start_each_arm", True)
         self.declare_parameter("warm_start_value", 0.5)
         self.declare_parameter("thompson_forgetfulness", 0.05)
         self.declare_parameter("thompson_seed", 11)
@@ -50,6 +51,7 @@ class UCBBanditNode(Node):
             warm_start_each_arm=warm_start_each_arm,
             warm_start_value=warm_start_value,
         )
+        
         self.bucket_publisher = self.create_publisher(Int32, bucket_topic, 10)
         self.request_subscriber = self.create_subscription(
             Empty,
@@ -86,7 +88,9 @@ class UCBBanditNode(Node):
             f"Listening for start on '{start_topic}', stop on '{stop_topic}', reset on '{reset_topic}', "
             f"move requests on '{request_topic}', rewards on '{reward_topic}', "
             f"publishing bucket choices on '{bucket_topic}', using '{action_policy}' as the action policy, "
-            f"and warm_start_each_arm={warm_start_each_arm}."
+            f"and warm_start_each_arm={warm_start_each_arm}, "
+            f"and values = {[round(v,3) for v in self.engine.ucb.values]}, "
+            f"and total pulls = {self.engine.ucb.total_pulls}. "  
         )
 
     def _handle_start_experiment(self, _: Empty) -> None:
@@ -111,6 +115,8 @@ class UCBBanditNode(Node):
         message = Int32()
         message.data = arm
         self.bucket_publisher.publish(message)
+        self.get_logger().error(f"TO BE WARMED?: {self.engine.warm_start_each_arm}")
+        self.get_logger().error(f"LOG: {self.engine.ucb._solver.test_log_var}")
         self.get_logger().info(f"Selected bucket {arm} and published command to motion package.")
 
     def _handle_reward(self, msg: Int32) -> None:
