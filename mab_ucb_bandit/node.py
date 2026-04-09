@@ -26,69 +26,81 @@ class UCBBanditNode(Node):
         self.declare_parameter("softmax_temperature", 0.2)
         self.declare_parameter("softmax_learning_rate", 0.1)
 
-        request_topic = str(self.get_parameter("request_topic").value)
-        reward_topic = str(self.get_parameter("reward_topic").value)
-        bucket_topic = str(self.get_parameter("bucket_topic").value)
-        start_topic = str(self.get_parameter("start_topic").value)
-        stop_topic = str(self.get_parameter("stop_topic").value)
-        reset_topic = str(self.get_parameter("reset_topic").value)
-        action_policy = str(self.get_parameter("action_policy").value)
-        warm_start_each_arm = bool(self.get_parameter("warm_start_each_arm").value)
-        warm_start_value = float(self.get_parameter("warm_start_value").value)
-        thompson_forgetfulness = float(self.get_parameter("thompson_forgetfulness").value)
-        thompson_seed = int(self.get_parameter("thompson_seed").value)
-        softmax_temperature = float(self.get_parameter("softmax_temperature").value)
-        softmax_learning_rate = float(self.get_parameter("softmax_learning_rate").value)
+        self.request_topic = str(self.get_parameter("request_topic").value)
+        self.reward_topic = str(self.get_parameter("reward_topic").value)
+        self.bucket_topic = str(self.get_parameter("bucket_topic").value)
+        self.start_topic = str(self.get_parameter("start_topic").value)
+        self.stop_topic = str(self.get_parameter("stop_topic").value)
+        self.reset_topic = str(self.get_parameter("reset_topic").value)
+        self.action_policy = str(self.get_parameter("action_policy").value)
+        self.warm_start_each_arm = bool(self.get_parameter("warm_start_each_arm").value)
+        self.warm_start_value = float(self.get_parameter("warm_start_value").value)
+        self.thompson_forgetfulness = float(self.get_parameter("thompson_forgetfulness").value)
+        self.thompson_seed = int(self.get_parameter("thompson_seed").value)
+        self.softmax_temperature = float(self.get_parameter("softmax_temperature").value)
+        self.softmax_learning_rate = float(self.get_parameter("softmax_learning_rate").value)
+
+        self.create_timer(4, self._timer_func)
 
         # UCB selects the bucket to publish; Thompson and softmax are tracked in parallel for logging only.
         self.engine = PolicyComparisonEngine(
             n_arms=4,
-            thompson_forgetfulness=thompson_forgetfulness,
-            thompson_seed=thompson_seed,
-            softmax_temperature=softmax_temperature,
-            softmax_learning_rate=softmax_learning_rate,
-            action_policy=action_policy,
-            warm_start_each_arm=warm_start_each_arm,
-            warm_start_value=warm_start_value,
+            thompson_forgetfulness=self.thompson_forgetfulness,
+            thompson_seed=self.thompson_seed,
+            softmax_temperature=self.softmax_temperature,
+            softmax_learning_rate=self.softmax_learning_rate,
+            action_policy=self.action_policy,
+            warm_start_each_arm=self.warm_start_each_arm,
+            warm_start_value=self.warm_start_value,
         )
         
-        self.bucket_publisher = self.create_publisher(Int32, bucket_topic, 10)
+        self.bucket_publisher = self.create_publisher(Int32, self.bucket_topic, 10)
         self.request_subscriber = self.create_subscription(
             Empty,
-            request_topic,
+            self.request_topic,
             self._handle_selection_request,
             10,
         )
         self.reward_subscriber = self.create_subscription(
             Int32,
-            reward_topic,
+            self.reward_topic,
             self._handle_reward,
             10,
         )
         self.start_subscriber = self.create_subscription(
             Empty,
-            start_topic,
+            self.start_topic,
             self._handle_start_experiment,
             10,
         )
         self.stop_subscriber = self.create_subscription(
             Empty,
-            stop_topic,
+            self.stop_topic,
             self._handle_stop_experiment,
             10,
         )
         self.reset_subscriber = self.create_subscription(
             Empty,
-            reset_topic,
+            self.reset_topic,
             self._handle_reset_experiment,
             10,
         )
 
         self.get_logger().info(
-            f"Listening for start on '{start_topic}', stop on '{stop_topic}', reset on '{reset_topic}', "
-            f"move requests on '{request_topic}', rewards on '{reward_topic}', "
-            f"publishing bucket choices on '{bucket_topic}', using '{action_policy}' as the action policy, "
-            f"and warm_start_each_arm={warm_start_each_arm}, "
+            f"Listening for start on '{self.start_topic}', stop on '{self.stop_topic}', reset on '{self.reset_topic}', "
+            f"move requests on '{self.request_topic}', rewards on '{self.reward_topic}', "
+            f"publishing bucket choices on '{self.bucket_topic}', using '{self.action_policy}' as the action policy, "
+            f"and warm_start_each_arm={self.warm_start_each_arm}, "
+            f"and values = {[round(v,3) for v in self.engine.ucb.values]}, "
+            f"and total pulls = {self.engine.ucb.total_pulls}. "  
+        )
+
+    def _timer_func(self) -> None:
+        self.get_logger().info(
+            f"Listening for start on '{self.start_topic}', stop on '{self.stop_topic}', reset on '{self.reset_topic}', "
+            f"move requests on '{self.request_topic}', rewards on '{self.reward_topic}', "
+            f"publishing bucket choices on '{self.bucket_topic}', using '{self.action_policy}' as the action policy, "
+            f"and warm_start_each_arm={self.warm_start_each_arm}, "
             f"and values = {[round(v,3) for v in self.engine.ucb.values]}, "
             f"and total pulls = {self.engine.ucb.total_pulls}. "  
         )
